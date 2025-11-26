@@ -1,12 +1,21 @@
 import pymysql
 from pymysql.cursors import DictCursor
+from dotenv import load_dotenv
+import os
+
+env_path = '.env.dev'
+load_dotenv(dotenv_path=env_path)
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST")
+db_username = os.getenv("DB_USERNAME")
+db_name = os.getenv("DB_NAME")
 
 # Database configuration
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'pass',  
-    'database':'btl_iot',  
+    'host': db_host,
+    'user': db_username,
+    'password': db_password,  
+    'database': db_name,  
     'charset': 'utf8mb4',
     'cursorclass': DictCursor
 }
