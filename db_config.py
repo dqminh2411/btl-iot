@@ -250,6 +250,31 @@ def get_all_images(limit=100, folder_id=None):
     finally:
         connection.close()
 
+def get_all_images_unassigned(limit=100):
+    connection = get_db_connection()
+    if not connection:
+        return []
+    
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                SELECT i.*, f.name as folder_name
+                FROM images i
+                LEFT JOIN folders f ON i.folder_id = f.id
+                WHERE i.folder_id IS NULL
+                ORDER BY i.upload_time DESC
+                LIMIT %s
+            """
+            cursor.execute(sql, (limit))
+            return cursor.fetchall()
+            
+    except pymysql.Error as e:
+        print(f"Error retrieving images: {e}")
+        return []
+        
+    finally:
+        connection.close()
+
 def get_image_by_id(image_id):
     """
     Retrieve a specific image record by ID

@@ -43,5 +43,6 @@
 /venv
 /__pycache__
 /test
+/uploads
 
 .env.dev

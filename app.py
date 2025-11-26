@@ -1,9 +1,15 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os
 from datetime import datetime
-from db_config import init_db, save_image_record, get_all_images, create_folder, get_all_folders, get_folder_by_id, add_images_to_folder
+from db_config import init_db, save_image_record, get_all_images, create_folder, get_all_folders, get_folder_by_id, add_images_to_folder, get_all_images_unassigned
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+CORS(app)  # cho phép tất cả domain gọi API
+
+# hoặc giới hạn domain
+# CORS(app, origins=["http://localhost:3000"])
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
@@ -28,6 +34,10 @@ def log_request_info():
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/uploads/<path:filename>')
+def uploads(filename):
+    return send_from_directory("uploads", filename)
 
 @app.route('/')
 def index():
@@ -211,7 +221,11 @@ def list_images():
     try:
         limit = request.args.get('limit', 100, type=int)
         folder_id = request.args.get('folder_id', type=int)
-        images = get_all_images(limit, folder_id)
+        image_status = request.args.get('image_status', type=str)
+        if image_status and image_status.lower() == "unassigned":
+            images = get_all_images_unassigned(limit)
+        else:
+            images = get_all_images(limit, folder_id)
         
         return jsonify({
             'success': True,
