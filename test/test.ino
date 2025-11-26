@@ -5,6 +5,7 @@
 
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
+#include <HTTPClient.h>
 
 #define PIR_PIN 13
 #define LED_PIN 14
@@ -16,6 +17,54 @@ char ssid[] = "TP-Link_7130";
 char password[] = "22515360";
 BlynkTimer timer;
 WidgetTerminal terminal(V5);
+// Flask server configuration
+const char* flaskServer = "http://192.168.0.107:5000/upload";  // Replace with your PC's IP address
+
+/**
+ * Capture and upload image to Flask server
+ * @return true if upload successful, false otherwise
+ */
+bool uploadImageToFlask() {
+  // Capture image
+  camera_fb_t * fb = esp_camera_fb_get();
+  if (!fb) {
+    Serial.println("Camera capture failed");
+    return false;
+  }
+
+  Serial.println("Camera capture success");
+  Serial.printf("Image size: %d bytes\n", fb->len);
+
+  // Create HTTP client
+  HTTPClient http;
+  
+  // Begin HTTP connection
+  http.begin(flaskServer);
+  
+  // Set content type as image/jpeg
+  http.addHeader("Content-Type", "image/jpeg");
+  
+  // Send POST request with image data
+  int httpResponseCode = http.POST(fb->buf, fb->len);
+  
+  // Return camera frame buffer
+  esp_camera_fb_return(fb);
+  
+  // Check response
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+    Serial.println("Response: " + response);
+    http.end();
+    return true;
+  } else {
+    Serial.printf("Error on sending POST: %d\n", httpResponseCode);
+    Serial.println(http.errorToString(httpResponseCode));
+    http.end();
+    return false;
+  }
+}
+bool taken = false;
 void setup() {
   Serial.begin(115200);
   pinMode(13, INPUT);
@@ -34,12 +83,15 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.println("✅ Got IP: " + WiFi.localIP().toString());
 
-  Blynk.begin(BLYNK_AUTH_TOKEN,ssid,password);
-  terminal.println("connected to blynk");
-  terminal.flush();
-  digitalWrite(BUZZER_PIN,LOW);
-  digitalWrite(LED_PIN,LOW);
+  // Blynk.begin(BLYNK_AUTH_TOKEN,ssid,password);
+  // terminal.println("connected to blynk");
+  // terminal.flush();
+  // digitalWrite(BUZZER_PIN,LOW);
+  // digitalWrite(LED_PIN,LOW);
+
 }
+
+
 
   BLYNK_WRITE(V1){
     if (param.asInt() == 1){
@@ -61,8 +113,9 @@ void setup() {
         Serial.println("LED turned off (V2 = 0)");
     }
   }
+
 void loop() {
-  Blynk.run();
+  // Blynk.run();
   // Serial.println(digital(BUZZER_PIN));
   // terminal.println(digitalRead(BUZZER_PIN));
   // terminal.flush();
@@ -73,6 +126,10 @@ void loop() {
   // digitalWrite(BUZZER_PIN, LOW);  // tắt
   // digitalWrite(LED_PIN,LOW);
   // delay(1000);
+  if(!taken){
+    uploadImageToFlask();
+    taken=true;
+  }
 
 }
 

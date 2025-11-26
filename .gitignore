@@ -39,3 +39,7 @@
 
 # debug information files
 *.dwo
+
+/venv
+/__pycache__
+/test
